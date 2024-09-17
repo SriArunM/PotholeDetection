@@ -9,17 +9,17 @@ import av
 from streamlit_webrtc import VideoProcessorBase, webrtc_streamer
 
 
-# Define the video transformer class for real-time webcam
-class YOLOVideoTransformer(VideoProcessorBase):
+# Define the video processor class for real-time webcam
+class YOLOVideoProcessor(VideoProcessorBase):
     def __init__(self, batch_size=1, conf_threshold=0.25, frame_skip=1):
-        # Initialize the YOLO model
+        # Initialize the YOLO model without weights_only (since it's not supported)
         self.model = YOLO("model.pt")
         self.batch_size = batch_size
         self.conf_threshold = conf_threshold
         self.frame_skip = frame_skip
         self.frame_count = 0  # To track frames for frame skipping
 
-    def transform(self, frame):
+    def recv(self, frame):
         # Convert the frame to a numpy array
         img = frame.to_ndarray(format="bgr24")
 
@@ -29,7 +29,7 @@ class YOLOVideoTransformer(VideoProcessorBase):
         # Draw bounding boxes on the frame
         annotated_frame = results[0].plot()
 
-        return annotated_frame
+        return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
 
 def process_video(uploaded_video, conf_threshold, batch_size, model):
@@ -86,7 +86,7 @@ def main():
         "Frame Skip (Set to 1 for no skipping)", min_value=1, max_value=10, value=1
     )
 
-    # Initialize YOLO model
+    # Initialize YOLO model without weights_only
     model = YOLO("model.pt")
 
     if option == "Real-time Camera":
@@ -94,7 +94,7 @@ def main():
         # Use WebRTC for real-time video streaming
         webrtc_streamer(
             key="yolo",
-            video_transformer_factory=lambda: YOLOVideoTransformer(
+            video_processor_factory=lambda: YOLOVideoProcessor(
                 batch_size=batch_size,
                 conf_threshold=conf_threshold,
                 frame_skip=frame_skip,
