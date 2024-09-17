@@ -99,6 +99,14 @@ def main():
                 conf_threshold=conf_threshold,
                 frame_skip=frame_skip,
             ),
+            rtc_configuration={
+                "iceServers": [
+                    {
+                        "urls": ["stun:stun.l.google.com:19302"]
+                    },  # Google's free STUN server
+                    # Add more TURN servers here if needed for better connectivity
+                ]
+            },
         )
 
     elif option == "Upload Image":
