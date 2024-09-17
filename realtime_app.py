@@ -6,7 +6,7 @@ import tempfile
 import os
 from pathlib import Path
 import av
-from streamlit_webrtc import VideoProcessorBase, webrtc_streamer
+from streamlit_webrtc import VideoProcessorBase, webrtc_streamer, RTCConfiguration
 
 
 # Define the video processor class for real-time webcam
@@ -99,14 +99,9 @@ def main():
                 conf_threshold=conf_threshold,
                 frame_skip=frame_skip,
             ),
-            rtc_configuration={
-                "iceServers": [
-                    {
-                        "urls": ["stun:stun.l.google.com:19302"]
-                    },  # Google's free STUN server
-                    # Add more TURN servers here if needed for better connectivity
-                ]
-            },
+            rtc_configuration=RTCConfiguration(
+                {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+            ),
         )
 
     elif option == "Upload Image":
