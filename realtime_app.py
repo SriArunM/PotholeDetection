@@ -6,11 +6,11 @@ import tempfile
 import os
 from pathlib import Path
 import av
-from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
+from streamlit_webrtc import VideoProcessorBase, webrtc_streamer
 
 
 # Define the video transformer class for real-time webcam
-class YOLOVideoTransformer(VideoTransformerBase):
+class YOLOVideoTransformer(VideoProcessorBase):
     def __init__(self, batch_size=1, conf_threshold=0.25, frame_skip=1):
         # Initialize the YOLO model
         self.model = YOLO("model.pt")
