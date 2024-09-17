@@ -76,7 +76,9 @@ def main():
                     # Make sure to check if the queue has results
                     if not webrtc_ctx.video_processor.result_queue.empty():
                         result = webrtc_ctx.video_processor.result_queue.get()
+                        # Assuming result is a dataframe or similar
                         labels_placeholder.table(result.pandas().to_dict())
+
     elif option == "Upload Image":
         st.write("Upload an image for object detection")
         uploaded_image = st.file_uploader(
