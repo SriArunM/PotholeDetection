@@ -34,7 +34,6 @@ class YOLOVideoProcessor(VideoProcessorBase):
 def main():
     st.title("YOLO Object Detection with Streamlit")
 
-    # Sidebar for user selection
     st.sidebar.title("Options")
     option = st.sidebar.selectbox(
         "Select input type:", ("Real-time Camera", "Upload Image", "Upload Video")
@@ -52,14 +51,20 @@ def main():
 
     if option == "Real-time Camera":
         st.write("Real-time object detection using webcam")
+
+        # Define RTC configuration
+        rtc_config = {
+            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}],
+            "iceTransportPolicy": "all",
+        }
         
-        # Use WebRTC for real-time video streaming
+        st.write(f"RTC Configuration: {rtc_config}")
+
+        # Initialize WebRTC streamer
         webrtc_ctx = webrtc_streamer(
             key="yolo",
             mode=WebRtcMode.SENDRECV,
-            rtc_configuration=RTCConfiguration(
-                {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-            ),
+            rtc_configuration=rtc_config,
             video_processor_factory=lambda: YOLOVideoProcessor(
                 batch_size=batch_size,
                 conf_threshold=conf_threshold,
@@ -76,13 +81,9 @@ def main():
             if webrtc_ctx.state.playing:
                 labels_placeholder = st.empty()
                 while True:
-                    # Debug statement to check if video_processor is None
-                    st.write(f"Video processor: {webrtc_ctx.video_processor}")
-                    
                     if webrtc_ctx.video_processor is not None:
                         if not webrtc_ctx.video_processor.result_queue.empty():
                             result = webrtc_ctx.video_processor.result_queue.get()
-                            # Assuming result is a dataframe or similar
                             labels_placeholder.table(result.pandas().to_dict())
                     else:
                         st.write("Video processor is None")
