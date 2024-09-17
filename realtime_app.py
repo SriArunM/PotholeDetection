@@ -69,15 +69,23 @@ def main():
             async_processing=True,
         )
 
+        # Debug statement to check the state of webrtc_ctx
+        st.write(f"WebRTC context state: {webrtc_ctx.state}")
+
         if st.checkbox("Show the detected labels", value=True):
             if webrtc_ctx.state.playing:
                 labels_placeholder = st.empty()
                 while True:
-                    # Make sure to check if the queue has results
-                    if not webrtc_ctx.video_processor.result_queue.empty():
-                        result = webrtc_ctx.video_processor.result_queue.get()
-                        # Assuming result is a dataframe or similar
-                        labels_placeholder.table(result.pandas().to_dict())
+                    # Debug statement to check if video_processor is None
+                    st.write(f"Video processor: {webrtc_ctx.video_processor}")
+                    
+                    if webrtc_ctx.video_processor is not None:
+                        if not webrtc_ctx.video_processor.result_queue.empty():
+                            result = webrtc_ctx.video_processor.result_queue.get()
+                            # Assuming result is a dataframe or similar
+                            labels_placeholder.table(result.pandas().to_dict())
+                    else:
+                        st.write("Video processor is None")
 
     elif option == "Upload Image":
         st.write("Upload an image for object detection")
