@@ -3,24 +3,24 @@ import cv2
 from ultralytics import YOLO
 import numpy as np
 import tempfile
-import os
-from pathlib import Path
 import av
+import queue
 from streamlit_webrtc import VideoProcessorBase, webrtc_streamer, RTCConfiguration
 
 
 # Define the video processor class for real-time webcam
 class YOLOVideoProcessor(VideoProcessorBase):
     def __init__(self, batch_size=1, conf_threshold=0.25, frame_skip=1):
-        # Initialize the YOLO model without weights_only (since it's not supported)
         self.model = YOLO("model.pt")
         self.batch_size = batch_size
         self.conf_threshold = conf_threshold
         self.frame_skip = frame_skip
-        self.frame_count = 0  # To track frames for frame skipping
+        self.frame_count = 0
+        self.result_queue = (
+            queue.Queue()
+        )  # Initialize the queue for storing detection results
 
     def recv(self, frame):
-        # Convert the frame to a numpy array
         img = frame.to_ndarray(format="bgr24")
 
         # Perform object detection with the specified confidence threshold and batch size
@@ -28,6 +28,10 @@ class YOLOVideoProcessor(VideoProcessorBase):
 
         # Draw bounding boxes on the frame
         annotated_frame = results[0].plot()
+
+        # Put results in the queue for later display
+        detections = results[0].pandas().xyxy[0].to_dict(orient="records")
+        self.result_queue.put(detections)
 
         return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
@@ -86,13 +90,14 @@ def main():
         "Frame Skip (Set to 1 for no skipping)", min_value=1, max_value=10, value=1
     )
 
-    # Initialize YOLO model without weights_only
+    # Initialize YOLO model
     model = YOLO("model.pt")
 
     if option == "Real-time Camera":
         st.write("Real-time object detection using webcam")
-        # Use WebRTC for real-time video streaming
-        webrtc_streamer(
+
+        # WebRTC configuration
+        webrtc_ctx = webrtc_streamer(
             key="yolo",
             video_processor_factory=lambda: YOLOVideoProcessor(
                 batch_size=batch_size,
@@ -104,6 +109,15 @@ def main():
             ),
         )
 
+        # Display detected labels if checkbox is selected
+        if st.checkbox("Show the detected labels", value=True):
+            if webrtc_ctx.video_processor:
+                result_queue = webrtc_ctx.video_processor.result_queue
+                labels_placeholder = st.empty()
+                while True:
+                    detections = result_queue.get()
+                    labels_placeholder.table(detections)
+
     elif option == "Upload Image":
         st.write("Upload an image for object detection")
         uploaded_image = st.file_uploader(
@@ -111,15 +125,10 @@ def main():
         )
 
         if uploaded_image is not None:
-            # Convert the uploaded file to an OpenCV image
             file_bytes = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
             image = cv2.imdecode(file_bytes, 1)
-
-            # Perform object detection with the specified confidence threshold and batch size
             results = model(image, conf=conf_threshold, batch=batch_size)
             annotated_image = results[0].plot()
-
-            # Display the image
             st.image(annotated_image, channels="BGR", caption="Processed Image")
 
     elif option == "Upload Video":
